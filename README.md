@@ -4,7 +4,7 @@ Aplicação educativa para criar, ajustar e comparar gráficos de funções mate
 
 ## Usar a aplicação
 
-Abra index.html no navegador. Quando a publicação online estiver concluída, o link do GitHub Pages aparecerá na seção About do repositório.
+[Abrir o Explorador de funções](https://guilhermedasilvamartins2006-byte.github.io/explorador-de-funcoes/)
 
 ## O que você pode explorar
 
@@ -15,6 +15,6 @@ Abra index.html no navegador. Quando a publicação online estiver concluída, o
 
 ## Projeto e fontes
 
-O arquivo index.html funciona sozinho. O pacote explorador-de-funcoes.zip contém também os arquivos modulares para estudo e edição. Para abrir a versão modular localmente, sirva a pasta descompactada com python3 -m http.server 8000 e visite http://localhost:8000/modular.html.
+O arquivo index.html funciona sozinho. O pacote explorador-de-funcoes.zip contém os arquivos modulares para estudo e edição. Para abrir a versão modular localmente, sirva a pasta descompactada com python3 -m http.server 8000 e visite http://localhost:8000/modular.html.
 
 Funções trigonométricas usam radianos. Expressões personalizadas são interpretadas por um parser restrito; JavaScript inserido não é executado.
