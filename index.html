@@ -1,0 +1,1261 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f8fafc" />
+    <meta name="description" content="Explore funções matemáticas e veja como suas expressões e parâmetros mudam os gráficos." />
+    <title>Explorador de funções</title>
+    <style>
+:root {
+  color-scheme: light;
+  --ink: #17202b;
+  --muted: #65717e;
+  --muted-strong: #475467;
+  --line: #e1e7ed;
+  --line-soft: #edf1f5;
+  --surface: #ffffff;
+  --canvas: #f8fafc;
+  --blue: #155eef;
+  --blue-soft: #eff4ff;
+  --red: #b42318;
+  --green: #027a48;
+  --violet: #6941c6;
+  --orange: #c4320a;
+  --teal: #0e7090;
+  --focus: #2e90fa;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 3px solid rgba(46, 144, 250, .35);
+  outline-offset: 2px;
+}
+
+.app-shell { max-width: 1480px; margin: 0 auto; padding: 0 32px 20px; }
+.topbar {
+  min-height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+}
+.brand-lockup { display: flex; align-items: center; gap: 13px; }
+.brand-mark {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: #eaf1ff;
+  color: var(--blue);
+  font-family: Georgia, serif;
+  font-size: 28px;
+  font-weight: 700;
+}
+.eyebrow { margin: 0 0 4px; color: var(--muted); font-size: 10px; font-weight: 750; letter-spacing: .12em; }
+h1, h2, h3, p { margin-top: 0; }
+h1 { margin: 0; font-size: 20px; line-height: 1.2; letter-spacing: -.025em; }
+h2 { margin: 0; font-size: 16px; line-height: 1.25; letter-spacing: -.012em; }
+h3 { margin: 0; font-size: 13px; }
+.header-note { margin: 0; color: var(--muted); }
+
+.workspace { display: grid; grid-template-columns: minmax(300px, 370px) minmax(0, 1fr); gap: 20px; padding-top: 20px; align-items: start; }
+.sidebar { display: grid; gap: 14px; }
+.panel, .graph-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; }
+.panel { padding: 18px; }
+.section-heading, .graph-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.section-heading { margin-bottom: 16px; }
+.count-badge { min-width: 25px; height: 25px; display: grid; place-items: center; border-radius: 999px; padding: 0 7px; background: #f2f4f7; color: var(--muted-strong); font-size: 12px; font-weight: 700; }
+
+.function-list { display: grid; gap: 8px; margin-bottom: 16px; }
+.function-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 8px; border: 1px solid var(--line-soft); border-radius: 11px; background: #fff; }
+.function-card.is-selected { border-color: #b2ccff; background: #f8faff; }
+.function-card.is-hidden { opacity: .62; }
+.function-select {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+  padding: 3px;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+}
+.function-meta { display: grid; min-width: 0; }
+.function-title { overflow: hidden; color: var(--ink); font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.function-formula { overflow: hidden; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.swatch { width: 10px; height: 10px; flex: 0 0 auto; border-radius: 50%; }
+.function-actions { display: flex; gap: 3px; }
+.icon-button { width: 32px; height: 32px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--muted-strong); font-size: 15px; }
+.icon-button:hover { background: #f2f4f7; color: var(--ink); }
+.icon-button.remove:hover { background: #fef3f2; color: var(--red); }
+.icon-button .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+.field-label { display: block; margin: 0 0 6px; color: var(--muted-strong); font-size: 11px; font-weight: 700; }
+.add-row { display: grid; grid-template-columns: minmax(0, 1fr) 40px; gap: 8px; }
+.control-select, .control-input { width: 100%; min-width: 0; height: 39px; border: 1px solid #d0d5dd; border-radius: 9px; padding: 0 11px; background: #fff; color: var(--ink); }
+.control-select { appearance: auto; }
+.button { min-height: 38px; padding: 0 13px; border: 1px solid transparent; border-radius: 9px; font-size: 12px; font-weight: 700; transition: background-color .15s ease, border-color .15s ease; }
+.button-primary { background: var(--blue); color: #fff; }
+.button-primary:hover { background: #004eeb; }
+.add-button { font-size: 22px; line-height: 1; }
+.button-secondary { border-color: #d0d5dd; background: #fff; color: var(--muted-strong); }
+.button-secondary:hover { background: #f9fafb; border-color: #98a2b3; }
+.text-button { border: 0; padding: 6px 0; background: transparent; color: var(--blue); font-size: 11px; font-weight: 650; text-align: left; }
+.text-button:hover { text-decoration: underline; }
+
+.editor-heading { margin-bottom: 14px; }
+.selected-color { width: 12px; height: 12px; border-radius: 50%; }
+.type-select { margin-bottom: 12px; }
+.equation-card { margin-top: 14px; padding: 12px; border: 1px solid #dbe6ff; border-radius: 11px; background: var(--blue-soft); }
+.equation-card .field-label { margin-bottom: 5px; color: #344054; }
+.equation-symbolic { margin: 0; color: var(--muted-strong); font-family: Georgia, "Times New Roman", serif; font-size: 16px; font-weight: 600; }
+.equation-live { margin: 5px 0 0; color: var(--blue); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 650; overflow-wrap: anywhere; }
+.expression-label { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
+.math-note { color: var(--muted); font-family: Georgia, serif; font-size: 14px; }
+.expression-input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.field-help, .unit-note { margin: 6px 0 0; color: var(--muted); font-size: 11px; }
+.field-error { min-height: 0; margin: 0; color: var(--red); font-size: 11px; }
+.field-error:not(:empty) { margin-top: 6px; }
+.parameter-section { margin-top: 18px; }
+.parameter-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+.unit-note { margin: 0; }
+.parameter-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.parameter-field { display: grid; grid-template-columns: minmax(0, 1fr) 70px; align-items: center; gap: 6px 8px; min-width: 0; padding: 9px; border: 1px solid var(--line-soft); border-radius: 10px; background: #fff; }
+.parameter-caption { display: block; min-width: 0; color: var(--muted-strong); font-size: 11px; font-weight: 700; }
+.parameter-input { height: 33px; padding: 0 7px; font-variant-numeric: tabular-nums; font-size: 12px; }
+.parameter-range { grid-column: 1 / -1; width: 100%; height: 17px; margin: 0; accent-color: var(--blue); cursor: ew-resize; }
+.parameter-error { display: block; min-height: 0; margin-top: 3px; color: var(--red); font-size: 9px; }
+.empty-note { padding: 13px; border-radius: 10px; background: #f9fafb; color: var(--muted); font-size: 12px; }
+
+.range-form { display: grid; gap: 12px; }
+.axis-fieldset { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-width: 0; margin: 0; padding: 10px; border: 1px solid var(--line-soft); border-radius: 10px; }
+.axis-fieldset legend { padding: 0 5px; color: var(--muted-strong); font-size: 11px; font-weight: 750; }
+.axis-fieldset label span { display: block; margin-bottom: 4px; color: var(--muted); font-size: 10px; }
+.range-input { height: 34px; padding: 0 7px; font-size: 12px; }
+.range-actions { display: grid; justify-items: start; gap: 7px; }
+.range-actions .button { width: 100%; }
+
+.graph-panel { min-width: 0; overflow: hidden; }
+.graph-header { padding: 22px 24px 12px; align-items: end; }
+.graph-summary { margin: 0; color: var(--muted); font-size: 11px; text-align: right; }
+.graph-frame { padding: 0 14px; }
+#graph { display: block; width: 100%; height: auto; min-height: 330px; overflow: visible; }
+.grid-line { stroke: #eef1f5; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.axis-line { stroke: #667085; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.tick-label { fill: #7a8592; font: 11px ui-sans-serif, system-ui, sans-serif; }
+.axis-label { fill: #475467; font: 700 12px ui-sans-serif, system-ui, sans-serif; }
+.curve-path { fill: none; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.graph-footer { display: flex; justify-content: space-between; align-items: start; gap: 20px; padding: 12px 24px 20px; border-top: 1px solid var(--line-soft); }
+.axis-caption, .curve-description { margin: 0; color: var(--muted); font-size: 11px; }
+.curve-description { margin-top: 4px; }
+.axis-x, .axis-y { color: var(--muted-strong); font-family: Georgia, serif; font-style: italic; font-weight: 700; }
+.caption-divider { padding: 0 5px; color: #c2c8d0; }
+.graph-legend { display: flex; flex-wrap: wrap; justify-content: end; gap: 7px 12px; }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--muted-strong); font-size: 11px; }
+.legend-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 2px; border: 0; background: transparent; color: inherit; }
+.legend-toggle[aria-pressed="false"] { opacity: .5; text-decoration: line-through; }
+.legend-line { width: 15px; height: 3px; border-radius: 3px; }
+.page-footer { display: flex; justify-content: space-between; gap: 16px; padding: 15px 3px 0; color: #87919d; font-size: 10px; }
+
+@media (max-width: 980px) {
+  .app-shell { padding-right: 20px; padding-left: 20px; }
+  .workspace { grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 14px; }
+  .panel { padding: 15px; }
+  .graph-header { padding: 18px 18px 10px; }
+  .graph-footer { padding-right: 18px; padding-left: 18px; }
+  .graph-frame { padding: 0 8px; }
+  #graph { min-height: 280px; }
+}
+
+@media (max-width: 760px) {
+  .app-shell { padding-right: 14px; padding-left: 14px; }
+  .topbar { min-height: 80px; }
+  .header-note { display: none; }
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+  .graph-panel { grid-row: 1; }
+  .sidebar { grid-row: 2; }
+  .graph-header { align-items: start; padding: 16px 15px 8px; }
+  .graph-header h2 { font-size: 14px; }
+  .graph-summary { max-width: 45%; font-size: 10px; }
+  .graph-frame { padding: 0 4px; }
+  #graph { min-height: 230px; }
+  .graph-footer { display: grid; padding: 10px 15px 15px; }
+  .graph-legend { justify-content: start; }
+  .page-footer { flex-direction: column; gap: 3px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
+    </style>
+    <script type="module">
+const MAX_EXPRESSION_LENGTH = 160;
+const MAX_TOKENS = 120;
+const MAX_DEPTH = 32;
+const PARAMETER_NAMES = new Set(["a", "b", "c", "m", "A", "omega", "phi", "d", "k", "h"]);
+const CONSTANTS = Object.freeze({ pi: Math.PI, e: Math.E });
+const FUNCTIONS = Object.freeze({
+  sin: Math.sin,
+  cos: Math.cos,
+  tan: Math.tan,
+  sqrt: Math.sqrt,
+  abs: Math.abs,
+  log: Math.log,
+  exp: Math.exp,
+});
+
+class ExpressionError extends Error {
+  constructor(message, position = 0) {
+    super(message);
+    this.name = "ExpressionError";
+    this.position = position;
+  }
+}
+
+function tokenize(source) {
+  if (typeof source !== "string" || source.trim() === "") {
+    throw new ExpressionError("Digite uma expressão matemática.", 0);
+  }
+  if (source.length > MAX_EXPRESSION_LENGTH) {
+    throw new ExpressionError(`A expressão deve ter até ${MAX_EXPRESSION_LENGTH} caracteres.`, MAX_EXPRESSION_LENGTH);
+  }
+
+  const tokens = [];
+  let index = 0;
+  while (index < source.length) {
+    const char = source[index];
+    if (/\s/.test(char)) {
+      index += 1;
+      continue;
+    }
+
+    const rest = source.slice(index);
+    const numberMatch = rest.match(/^(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?/);
+    if (numberMatch) {
+      const value = Number(numberMatch[0]);
+      if (!Number.isFinite(value)) throw new ExpressionError("Esse número está fora do intervalo permitido.", index);
+      tokens.push({ type: "number", value, position: index });
+      index += numberMatch[0].length;
+    } else if (/[A-Za-z_]/.test(char)) {
+      const identifierMatch = rest.match(/^[A-Za-z_][A-Za-z0-9_]*/);
+      tokens.push({ type: "identifier", value: identifierMatch[0], position: index });
+      index += identifierMatch[0].length;
+    } else if ("+-*/^()".includes(char)) {
+      tokens.push({ type: char, value: char, position: index });
+      index += 1;
+    } else {
+      throw new ExpressionError(`O símbolo “${char}” não é permitido.`, index);
+    }
+
+    if (tokens.length > MAX_TOKENS) throw new ExpressionError("A expressão tem símbolos demais.", index);
+  }
+  tokens.push({ type: "eof", value: "", position: source.length });
+  return tokens;
+}
+
+class Parser {
+  constructor(tokens) {
+    this.tokens = tokens;
+    this.index = 0;
+    this.depth = 0;
+    this.parameters = new Set();
+  }
+
+  current() { return this.tokens[this.index]; }
+  consume(type) {
+    const token = this.current();
+    if (token.type !== type) {
+      const expected = type === ")" ? "Feche o parêntese." : `Era esperado “${type}”.`;
+      throw new ExpressionError(expected, token.position);
+    }
+    this.index += 1;
+    return token;
+  }
+
+  parse() {
+    const ast = this.additive();
+    if (this.current().type !== "eof") {
+      throw new ExpressionError(`Não foi possível interpretar “${this.current().value}”.`, this.current().position);
+    }
+    return { ast, parameters: [...this.parameters] };
+  }
+
+  withDepth(callback) {
+    this.depth += 1;
+    if (this.depth > MAX_DEPTH) throw new ExpressionError("A expressão está aninhada demais.", this.current().position);
+    try { return callback(); } finally { this.depth -= 1; }
+  }
+
+  additive() {
+    let node = this.multiplicative();
+    while (["+", "-"].includes(this.current().type)) {
+      const operator = this.current();
+      this.index += 1;
+      node = { type: "binary", operator: operator.type, left: node, right: this.multiplicative() };
+    }
+    return node;
+  }
+
+  multiplicative() {
+    let node = this.unary();
+    while (["*", "/"].includes(this.current().type)) {
+      const operator = this.current();
+      this.index += 1;
+      node = { type: "binary", operator: operator.type, left: node, right: this.unary() };
+    }
+    return node;
+  }
+
+  unary() {
+    if (["+", "-"].includes(this.current().type)) {
+      const operator = this.current();
+      this.index += 1;
+      return { type: "unary", operator: operator.type, value: this.withDepth(() => this.unary()) };
+    }
+    return this.power();
+  }
+
+  power() {
+    const base = this.primary();
+    if (this.current().type === "^") {
+      this.index += 1;
+      return { type: "binary", operator: "^", left: base, right: this.withDepth(() => this.unary()) };
+    }
+    return base;
+  }
+
+  primary() {
+    const token = this.current();
+    if (token.type === "number") {
+      this.index += 1;
+      return { type: "number", value: token.value };
+    }
+    if (token.type === "(") {
+      this.index += 1;
+      const node = this.withDepth(() => this.additive());
+      this.consume(")");
+      return node;
+    }
+    if (token.type === "identifier") {
+      this.index += 1;
+      if (Object.hasOwn(FUNCTIONS, token.value)) {
+        if (this.current().type !== "(") {
+          throw new ExpressionError(`Use parênteses depois de “${token.value}”.`, this.current().position);
+        }
+        this.index += 1;
+        const argument = this.withDepth(() => this.additive());
+        this.consume(")");
+        return { type: "call", name: token.value, argument };
+      }
+      if (Object.hasOwn(CONSTANTS, token.value)) return { type: "number", value: CONSTANTS[token.value] };
+      if (token.value === "x") return { type: "variable", name: "x" };
+      if (PARAMETER_NAMES.has(token.value)) {
+        this.parameters.add(token.value);
+        return { type: "variable", name: token.value };
+      }
+      throw new ExpressionError(`“${token.value}” não é uma variável ou função permitida.`, token.position);
+    }
+    if (token.type === "eof") throw new ExpressionError("A expressão está incompleta.", token.position);
+    throw new ExpressionError("Era esperado um número, variável ou parêntese.", token.position);
+  }
+}
+
+function evaluateNode(node, scope) {
+  switch (node.type) {
+    case "number": return node.value;
+    case "variable": return node.name === "x" ? scope.x : scope.parameters[node.name];
+    case "unary": {
+      const value = evaluateNode(node.value, scope);
+      return node.operator === "-" ? -value : value;
+    }
+    case "binary": {
+      const left = evaluateNode(node.left, scope);
+      const right = evaluateNode(node.right, scope);
+      switch (node.operator) {
+        case "+": return left + right;
+        case "-": return left - right;
+        case "*": return left * right;
+        case "/": return left / right;
+        case "^": return left ** right;
+        default: return Number.NaN;
+      }
+    }
+    case "call": return FUNCTIONS[node.name](evaluateNode(node.argument, scope));
+    default: return Number.NaN;
+  }
+}
+
+function compileExpression(source) {
+  const { ast, parameters } = new Parser(tokenize(source)).parse();
+  return {
+    ast,
+    parameters,
+    evaluate(x, parameterValues = {}) {
+      return evaluateNode(ast, { x, parameters: parameterValues });
+    },
+  };
+}
+
+
+const PALETTE = [
+  { color: "#155eef", dash: "" },
+  { color: "#b42318", dash: "8 4" },
+  { color: "#027a48", dash: "3 3" },
+  { color: "#6941c6", dash: "10 3 2 3" },
+  { color: "#c4320a", dash: "5 3" },
+  { color: "#0e7090", dash: "2 3" },
+  { color: "#ba24d5", dash: "11 3" },
+  { color: "#8a2e0b", dash: "7 2 1 2" },
+  { color: "#344054", dash: "1 2" },
+  { color: "#4e5ba6", dash: "4 2 2 2" },
+];
+
+const TEMPLATES = Object.freeze({
+  linear: {
+    title: "Linear",
+    expression: "m*x + b",
+    equation: "y = m·x + b",
+    parameters: { m: 1, b: 0 },
+  },
+  quadratic: {
+    title: "Quadrática",
+    expression: "a*x^2 + b*x + c",
+    equation: "y = a·x² + b·x + c",
+    parameters: { a: 1, b: 0, c: 0 },
+  },
+  sine: {
+    title: "Seno",
+    expression: "A*sin(omega*x + phi) + d",
+    equation: "y = A·sin(ω·x + φ) + d",
+    parameters: { A: 1, omega: 1, phi: 0, d: 0 },
+  },
+  exponential: {
+    title: "Exponencial",
+    expression: "A*exp(k*x) + c",
+    equation: "y = A·e^(k·x) + c",
+    parameters: { A: 1, k: 0.5, c: 0 },
+  },
+  modular: {
+    title: "Modular",
+    expression: "a*abs(x-h)+k",
+    equation: "y = a·|x − h| + k",
+    parameters: { a: 1, h: 0, k: 0 },
+  },
+  logarithmic: {
+    title: "Logarítmica",
+    expression: "a*log(x-h)+k",
+    equation: "y = a·ln(x − h) + k",
+    parameters: { a: 1, h: 0, k: 0 },
+  },
+});
+
+const PARAMETER_CONTROLS = Object.freeze({
+  a: { min: -5, max: 5, step: 0.1 },
+  b: { min: -10, max: 10, step: 0.1 },
+  c: { min: -10, max: 10, step: 0.1 },
+  m: { min: -5, max: 5, step: 0.1 },
+  A: { min: -5, max: 5, step: 0.1 },
+  omega: { min: -5, max: 5, step: 0.1 },
+  phi: { min: -6.3, max: 6.3, step: 0.1 },
+  d: { min: -10, max: 10, step: 0.1 },
+  k: { min: -2, max: 2, step: 0.05 },
+  h: { min: -10, max: 10, step: 0.1 },
+  "modular:k": { min: -10, max: 10, step: 0.1 },
+  "logarithmic:k": { min: -10, max: 10, step: 0.1 },
+});
+
+const PARAMETER_LABELS = Object.freeze({
+  linear: { m: "inclinação", b: "intercepto" },
+  quadratic: { a: "termo quadrático", b: "termo linear", c: "termo constante" },
+  sine: { A: "amplitude", omega: "frequência angular", phi: "fase", d: "deslocamento vertical" },
+  exponential: { A: "escala", k: "taxa de crescimento", c: "deslocamento vertical" },
+  modular: { a: "abertura e orientação", h: "deslocamento horizontal", k: "deslocamento vertical" },
+  logarithmic: { a: "escala e orientação", h: "deslocamento horizontal", k: "deslocamento vertical" },
+  custom: { a: "parâmetro a", b: "parâmetro b", c: "parâmetro c", m: "inclinação m", A: "amplitude A", omega: "frequência angular", phi: "fase", d: "deslocamento vertical", k: "parâmetro k", h: "deslocamento horizontal" },
+});
+
+function createFunction(kind, index) {
+  const template = TEMPLATES[kind];
+  const isCustom = kind === "custom";
+  return {
+    id: globalThis.crypto?.randomUUID?.() ?? `fn-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    kind,
+    name: isCustom ? `Personalizada ${index}` : template.title,
+    expression: isCustom ? "x^2" : template.expression,
+    parameters: isCustom ? {} : { ...template.parameters },
+    visible: true,
+    colorIndex: index - 1,
+    error: "",
+    compiled: null,
+    lastValidExpression: "",
+  };
+}
+
+function colorFor(fn) {
+  return PALETTE[((fn.colorIndex % PALETTE.length) + PALETTE.length) % PALETTE.length];
+}
+
+
+const SVG_NS = "http://www.w3.org/2000/svg";
+const WIDTH = 900;
+const HEIGHT = 560;
+const MARGIN = { left: 72, right: 24, top: 24, bottom: 62 };
+const SAMPLE_COUNT = 720;
+
+function svgElement(name, attributes = {}) {
+  const element = document.createElementNS(SVG_NS, name);
+  for (const [key, value] of Object.entries(attributes)) element.setAttribute(key, String(value));
+  return element;
+}
+
+function niceStep(range, targetTicks = 9) {
+  const rough = range / targetTicks;
+  const power = 10 ** Math.floor(Math.log10(rough));
+  const scaled = rough / power;
+  const multiplier = scaled <= 1 ? 1 : scaled <= 2 ? 2 : scaled <= 5 ? 5 : 10;
+  return multiplier * power;
+}
+
+function formatTick(value) {
+  if (Math.abs(value) < 1e-10) return "0";
+  if (Math.abs(value) >= 1e5 || Math.abs(value) < 1e-3) return Number(value.toPrecision(2)).toString();
+  return Number(value.toFixed(5)).toString();
+}
+
+function ticks(min, max) {
+  const step = niceStep(max - min);
+  const first = Math.ceil(min / step) * step;
+  const result = [];
+  for (let value = first, count = 0; value <= max + step * 1e-8 && count < 100; value += step, count += 1) {
+    result.push(Number(value.toPrecision(12)));
+  }
+  return result;
+}
+
+function drawAxes(gridLayer, axisLayer, config, plot) {
+  gridLayer.replaceChildren();
+  axisLayer.replaceChildren();
+  const { xMin, xMax, yMin, yMax } = config;
+  const toX = (x) => plot.left + ((x - xMin) / (xMax - xMin)) * plot.width;
+  const toY = (y) => plot.top + ((yMax - y) / (yMax - yMin)) * plot.height;
+
+  for (const x of ticks(xMin, xMax)) {
+    const px = toX(x);
+    gridLayer.append(svgElement("line", { x1: px, y1: plot.top, x2: px, y2: plot.top + plot.height, class: "grid-line" }));
+    const label = svgElement("text", { x: px, y: plot.top + plot.height + 22, "text-anchor": "middle", class: "tick-label" });
+    label.textContent = formatTick(x);
+    axisLayer.append(label);
+  }
+  for (const y of ticks(yMin, yMax)) {
+    const py = toY(y);
+    gridLayer.append(svgElement("line", { x1: plot.left, y1: py, x2: plot.left + plot.width, y2: py, class: "grid-line" }));
+    if (Math.abs(y) < 1e-10 && xMin <= 0 && xMax >= 0) continue;
+    const label = svgElement("text", { x: plot.left - 11, y: py + 4, "text-anchor": "end", class: "tick-label" });
+    label.textContent = formatTick(y);
+    axisLayer.append(label);
+  }
+
+  if (xMin <= 0 && xMax >= 0) {
+    const xAxis = svgElement("line", { x1: toX(0), y1: plot.top, x2: toX(0), y2: plot.top + plot.height, class: "axis-line" });
+    axisLayer.append(xAxis);
+  }
+  if (yMin <= 0 && yMax >= 0) {
+    const yAxis = svgElement("line", { x1: plot.left, y1: toY(0), x2: plot.left + plot.width, y2: toY(0), class: "axis-line" });
+    axisLayer.append(yAxis);
+  }
+
+  const xLabel = svgElement("text", { x: plot.left + plot.width, y: HEIGHT - 12, "text-anchor": "end", class: "axis-label" });
+  xLabel.textContent = "x";
+  axisLayer.append(xLabel);
+  const yLabel = svgElement("text", { x: 17, y: plot.top + 5, "text-anchor": "start", class: "axis-label" });
+  yLabel.textContent = "y";
+  axisLayer.append(yLabel);
+}
+
+function createCurvePath(fn, config, plot, style) {
+  if (!fn.compiled) return null;
+  const { xMin, xMax, yMin, yMax } = config;
+  const toX = (x) => plot.left + ((x - xMin) / (xMax - xMin)) * plot.width;
+  const toY = (y) => plot.top + ((yMax - y) / (yMax - yMin)) * plot.height;
+  let pathData = "";
+  let drawing = false;
+  let previousY = null;
+  let validCount = 0;
+  let invalidCount = 0;
+
+  for (let index = 0; index <= SAMPLE_COUNT; index += 1) {
+    const x = xMin + ((xMax - xMin) * index) / SAMPLE_COUNT;
+    let y;
+    try { y = fn.compiled.evaluate(x, fn.parameters); } catch { y = Number.NaN; }
+    if (!Number.isFinite(y)) {
+      invalidCount += 1;
+      drawing = false;
+      previousY = null;
+      continue;
+    }
+    const py = toY(y);
+    if (!Number.isFinite(py)) {
+      invalidCount += 1;
+      drawing = false;
+      previousY = null;
+      continue;
+    }
+    validCount += 1;
+    const jump = previousY !== null && Math.abs(py - previousY) > plot.height * 1.35;
+    if (!drawing || jump) pathData += `M${toX(x).toFixed(2)},${py.toFixed(2)}`;
+    else pathData += `L${toX(x).toFixed(2)},${py.toFixed(2)}`;
+    drawing = true;
+    previousY = py;
+  }
+  const path = pathData ? svgElement("path", {
+    d: pathData,
+    class: "curve-path",
+    stroke: style.color,
+    "stroke-dasharray": style.dash || "none",
+    "aria-label": `${fn.name}: ${fn.liveEquation ?? `y = ${fn.expression}`}`,
+  }) : null;
+  return { path, validCount, invalidCount };
+}
+
+function renderGraph({ svg, functions, config, palette }) {
+  const gridLayer = svg.querySelector("#grid-layer");
+  const axisLayer = svg.querySelector("#axis-layer");
+  const curveLayer = svg.querySelector("#curve-layer");
+  const plot = {
+    left: MARGIN.left,
+    top: MARGIN.top,
+    width: WIDTH - MARGIN.left - MARGIN.right,
+    height: HEIGHT - MARGIN.top - MARGIN.bottom,
+  };
+  const clipRect = svg.querySelector("#plot-clip-rect");
+  clipRect.setAttribute("x", String(plot.left));
+  clipRect.setAttribute("y", String(plot.top));
+  clipRect.setAttribute("width", String(plot.width));
+  clipRect.setAttribute("height", String(plot.height));
+  drawAxes(gridLayer, axisLayer, config, plot);
+  curveLayer.replaceChildren();
+  const visible = functions.filter((fn) => fn.visible && fn.compiled);
+  const diagnostics = [];
+  for (const fn of visible) {
+    const style = palette[((fn.colorIndex % palette.length) + palette.length) % palette.length];
+    const result = createCurvePath(fn, config, plot, style);
+    diagnostics.push({ id: fn.id, validCount: result.validCount, invalidCount: result.invalidCount });
+    if (result.path) curveLayer.append(result.path);
+  }
+  const title = svg.querySelector("#graph-description");
+  const names = visible.map((fn) => `${fn.name}, ${fn.liveEquation ?? `y igual a ${fn.expression}`}`).join("; ");
+  title.textContent = `${names || "Nenhuma função visível"}. Eixo x de ${formatTick(config.xMin)} a ${formatTick(config.xMax)}; eixo y de ${formatTick(config.yMin)} a ${formatTick(config.yMax)}.`;
+  return diagnostics;
+}
+
+function formatNumber(value) {
+  return formatTick(value);
+}
+
+
+const $ = (selector) => document.querySelector(selector);
+const functionList = $("#function-list");
+const functionCount = $("#function-count");
+const templateSelect = $("#function-template");
+const selectedType = $("#selected-function-type");
+const nameInput = $("#function-name");
+const expressionInput = $("#function-expression");
+const expressionError = $("#expression-error");
+const customExpressionSection = $("#custom-expression-section");
+const equationCard = $("#equation-card");
+const equationSymbolic = $("#equation-symbolic");
+const equationLive = $("#equation-live");
+const parameterControls = $("#parameter-controls");
+const editorContent = $("#editor-content");
+const editorEmpty = $("#editor-empty");
+const selectedColor = $("#selected-color");
+const graph = $("#graph");
+const graphSummary = $("#graph-summary");
+const appStatus = $("#app-status");
+const graphLegend = $("#graph-legend");
+const curveDescription = $("#curve-description");
+const rangeError = $("#range-error");
+
+const DEFAULT_RANGE = Object.freeze({ xMin: -10, xMax: 10, yMin: -10, yMax: 10 });
+let graphConfig = { ...DEFAULT_RANGE };
+let functions = [];
+let selectedId = null;
+let renderQueued = false;
+
+const parameterNumber = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 });
+
+function currentEquation(fn) {
+  const values = Object.fromEntries(Object.entries(fn.parameters).map(([key, value]) => [key, parameterNumber.format(value)]));
+  switch (fn.kind) {
+    case "linear": return `y = ${values.m ?? "1"}·x + (${values.b ?? "0"})`;
+    case "quadratic": return `y = ${values.a ?? "1"}·x² + (${values.b ?? "0"})·x + (${values.c ?? "0"})`;
+    case "sine": return `y = ${values.A ?? "1"}·sin(${values.omega ?? "1"}·x + ${values.phi ?? "0"}) + (${values.d ?? "0"})`;
+    case "exponential": return `y = ${values.A ?? "1"}·e^(${values.k ?? "0,5"}·x) + (${values.c ?? "0"})`;
+    case "modular": return `y = ${values.a ?? "1"}·|x − (${values.h ?? "0"})| + (${values.k ?? "0"})`;
+    case "logarithmic": return `y = ${values.a ?? "1"}·ln(x − (${values.h ?? "0"})) + (${values.k ?? "0"})`;
+    default: return `y = ${fn.expression}`;
+  }
+}
+
+function syncFunctionEquation(fn) {
+  fn.liveEquation = currentEquation(fn);
+  fn.symbolicEquation = TEMPLATES[fn.kind]?.equation ?? "Equação personalizada";
+}
+
+function initializeFunction(fn) {
+  try {
+    fn.compiled = compileExpression(fn.expression);
+    fn.lastValidExpression = fn.expression;
+  } catch (error) {
+    fn.error = error.message;
+  }
+  syncFunctionEquation(fn);
+  return fn;
+}
+
+function selectedFunction() {
+  return functions.find((fn) => fn.id === selectedId) ?? null;
+}
+
+function setGlobalStatus(message) {
+  appStatus.textContent = message;
+}
+
+function scheduleGraph() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => {
+    renderQueued = false;
+    const diagnostics = renderGraph({ svg: graph, functions, config: graphConfig, palette: PALETTE });
+    updateGraphText(diagnostics);
+  });
+}
+
+function updateGraphText(diagnostics = []) {
+  const visible = functions.filter((fn) => fn.visible);
+  const noRealValues = diagnostics.filter((item) => item.validCount === 0).map((item) => functions.find((fn) => fn.id === item.id)?.name).filter(Boolean);
+  const hasDomainGaps = diagnostics.some((item) => item.invalidCount > 0 && item.validCount > 0);
+  let summary = `${visible.length} ${visible.length === 1 ? "curva visível" : "curvas visíveis"} · x de ${formatNumber(graphConfig.xMin)} a ${formatNumber(graphConfig.xMax)}`;
+  if (noRealValues.length) summary += ` · ${noRealValues.join(", ")}: sem valores reais neste intervalo`;
+  else if (hasDomainGaps) summary += " · pontos fora do domínio omitidos";
+  graphSummary.textContent = summary;
+  const descriptions = visible.map((fn) => `${fn.name}: ${fn.liveEquation}`);
+  let description = descriptions.length ? descriptions.join(" · ") : "Oculte ou adicione uma função para visualizar curvas.";
+  if (noRealValues.length) description += ". Nenhum ponto real foi encontrado para: " + noRealValues.join(", ") + ".";
+  else if (hasDomainGaps) description += ". Trechos fora do domínio foram omitidos.";
+  curveDescription.textContent = description;
+}
+
+function updateCardFormula(fn) {
+  const card = functionList.querySelector(`[data-function-id="${CSS.escape(fn.id)}"]`);
+  const formula = card?.querySelector(".function-formula");
+  if (formula) formula.textContent = fn.liveEquation;
+  const select = card?.querySelector(".function-select");
+  if (select) select.setAttribute("aria-label", `Editar ${fn.name}, ${fn.liveEquation}`);
+  card?.classList.toggle("is-hidden", !fn.visible);
+}
+
+function renderFunctionList() {
+  functionList.replaceChildren();
+  functionCount.textContent = String(functions.length);
+  functionCount.setAttribute("aria-label", `${functions.length} ${functions.length === 1 ? "função" : "funções"}`);
+
+  for (const fn of functions) {
+    const card = document.createElement("article");
+    card.className = `function-card${fn.id === selectedId ? " is-selected" : ""}${fn.visible ? "" : " is-hidden"}`;
+    card.dataset.functionId = fn.id;
+
+    const select = document.createElement("button");
+    select.className = "function-select";
+    select.type = "button";
+    select.setAttribute("aria-pressed", String(fn.id === selectedId));
+    select.setAttribute("aria-label", `Editar ${fn.name}, ${fn.liveEquation}`);
+    select.addEventListener("click", () => selectFunction(fn.id));
+
+    const swatch = document.createElement("span");
+    swatch.className = "swatch";
+    swatch.style.backgroundColor = colorFor(fn).color;
+    swatch.setAttribute("aria-hidden", "true");
+    const meta = document.createElement("span");
+    meta.className = "function-meta";
+    const title = document.createElement("span");
+    title.className = "function-title";
+    title.textContent = fn.name;
+    const formula = document.createElement("span");
+    formula.className = "function-formula";
+    formula.textContent = fn.liveEquation;
+    meta.append(title, formula);
+    select.append(swatch, meta);
+
+    const actions = document.createElement("div");
+    actions.className = "function-actions";
+    const visibility = document.createElement("button");
+    visibility.className = "icon-button";
+    visibility.type = "button";
+    visibility.setAttribute("aria-pressed", String(fn.visible));
+    visibility.setAttribute("aria-label", `${fn.visible ? "Ocultar" : "Mostrar"} ${fn.name}`);
+    visibility.title = `${fn.visible ? "Ocultar" : "Mostrar"} curva`;
+    visibility.innerHTML = `<span aria-hidden="true">${fn.visible ? "◉" : "○"}</span>`;
+    visibility.addEventListener("click", () => toggleVisibility(fn.id));
+
+    const remove = document.createElement("button");
+    remove.className = "icon-button remove";
+    remove.type = "button";
+    remove.setAttribute("aria-label", `Remover ${fn.name}`);
+    remove.title = "Remover função";
+    remove.innerHTML = '<span aria-hidden="true">×</span>';
+    remove.addEventListener("click", () => removeFunction(fn.id));
+
+    actions.append(visibility, remove);
+    card.append(select, actions);
+    functionList.append(card);
+  }
+}
+
+function createParameterField(fn, name) {
+  const label = document.createElement("label");
+  label.className = "parameter-field";
+  const details = PARAMETER_CONTROLS[`${fn.kind}:${name}`] ?? PARAMETER_CONTROLS[name] ?? { min: -10, max: 10, step: 0.1 };
+  const description = PARAMETER_LABELS[fn.kind]?.[name] ?? `parâmetro ${name}`;
+  const caption = document.createElement("span");
+  caption.className = "parameter-caption";
+  caption.textContent = `${name} · ${description}`;
+  const input = document.createElement("input");
+  input.className = "control-input parameter-input";
+  input.type = "number";
+  input.step = "any";
+  input.value = String(fn.parameters[name] ?? 1);
+  input.setAttribute("aria-label", `Valor de ${description} (${name})`);
+  const slider = document.createElement("input");
+  slider.className = "parameter-range";
+  slider.type = "range";
+  slider.min = String(details.min);
+  slider.max = String(details.max);
+  slider.step = String(details.step);
+  slider.value = String(Math.min(details.max, Math.max(details.min, fn.parameters[name] ?? 1)));
+  slider.setAttribute("aria-label", `Mover ${description} (${name})`);
+  const error = document.createElement("span");
+  error.className = "parameter-error";
+  error.id = `parameter-error-${fn.id}-${name}`;
+  input.setAttribute("aria-describedby", error.id);
+
+  const applyValue = (value, source) => {
+    if (!Number.isFinite(value)) {
+      input.setAttribute("aria-invalid", "true");
+      error.textContent = "Digite um número finito.";
+      return;
+    }
+    input.removeAttribute("aria-invalid");
+    error.textContent = "";
+    fn.parameters[name] = value;
+    if (source === "slider") input.value = String(value);
+    slider.value = String(Math.min(details.max, Math.max(details.min, value)));
+    syncFunctionEquation(fn);
+    updateCardFormula(fn);
+    if (fn.id === selectedId) equationLive.textContent = fn.liveEquation;
+    scheduleGraph();
+  };
+
+  input.addEventListener("input", () => {
+    applyValue(input.valueAsNumber, "number");
+  });
+  slider.addEventListener("input", () => applyValue(slider.valueAsNumber, "slider"));
+  label.append(caption, input, slider, error);
+  return label;
+}
+
+function renderParameters(fn) {
+  parameterControls.replaceChildren();
+  const names = fn.compiled ? fn.compiled.parameters : Object.keys(fn.parameters).sort();
+  if (!names.length) {
+    const note = document.createElement("p");
+    note.className = "field-help parameter-empty";
+    note.textContent = "Esta expressão não usa parâmetros nomeados.";
+    parameterControls.append(note);
+    return;
+  }
+  for (const name of names) parameterControls.append(createParameterField(fn, name));
+}
+
+function setExpressionError(fn) {
+  const message = fn.error ? `Expressão inválida: ${fn.error} A última curva válida continua no gráfico.` : "";
+  expressionError.textContent = message;
+  expressionInput.setAttribute("aria-invalid", String(Boolean(fn.error)));
+}
+
+function renderEditor() {
+  const fn = selectedFunction();
+  editorEmpty.hidden = Boolean(fn);
+  editorContent.hidden = !fn;
+  if (!fn) {
+    selectedColor.style.backgroundColor = "transparent";
+    return;
+  }
+  selectedType.value = fn.kind;
+  nameInput.value = fn.name;
+  expressionInput.value = fn.expression;
+  selectedColor.style.backgroundColor = colorFor(fn).color;
+  const isCustom = fn.kind === "custom";
+  equationCard.hidden = isCustom;
+  customExpressionSection.hidden = !isCustom;
+  equationSymbolic.textContent = fn.symbolicEquation;
+  equationLive.textContent = fn.liveEquation;
+  setExpressionError(fn);
+  renderParameters(fn);
+}
+
+function renderLegend() {
+  graphLegend.replaceChildren();
+  for (const fn of functions) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "legend-toggle";
+    button.setAttribute("aria-pressed", String(fn.visible));
+    button.setAttribute("aria-label", `${fn.visible ? "Ocultar" : "Mostrar"} curva ${fn.name}`);
+    const line = document.createElement("span");
+    line.className = "legend-line";
+    line.style.backgroundColor = colorFor(fn).color;
+    const label = document.createElement("span");
+    label.textContent = fn.name;
+    button.append(line, label);
+    button.addEventListener("click", () => toggleVisibility(fn.id));
+    graphLegend.append(button);
+  }
+}
+
+function renderAll() {
+  renderFunctionList();
+  renderEditor();
+  renderLegend();
+  scheduleGraph();
+}
+
+function selectFunction(id) {
+  selectedId = id;
+  renderAll();
+}
+
+function toggleVisibility(id) {
+  const fn = functions.find((item) => item.id === id);
+  if (!fn) return;
+  fn.visible = !fn.visible;
+  renderFunctionList();
+  renderLegend();
+  scheduleGraph();
+}
+
+function removeFunction(id) {
+  const index = functions.findIndex((fn) => fn.id === id);
+  if (index < 0) return;
+  functions.splice(index, 1);
+  if (selectedId === id) selectedId = functions[Math.max(0, index - 1)]?.id ?? functions[0]?.id ?? null;
+  renderAll();
+  setGlobalStatus("Função removida.");
+}
+
+function addFunction(kind) {
+  if (functions.length >= 10) {
+    setGlobalStatus("O limite do MVP é de 10 funções ao mesmo tempo.");
+    return;
+  }
+  const sameTypeCount = functions.filter((item) => item.kind === kind).length;
+  const fn = initializeFunction(createFunction(kind, functions.length + 1));
+  if (kind !== "custom" && sameTypeCount > 0) fn.name = `${TEMPLATES[kind].title} ${sameTypeCount + 1}`;
+  if (kind === "custom") fn.name = `Personalizada ${sameTypeCount + 1}`;
+  functions.push(fn);
+  selectedId = fn.id;
+  renderAll();
+  nameInput.focus();
+  setGlobalStatus(`${fn.name} adicionada.`);
+}
+
+function updateParameterSet(fn, names) {
+  let changed = false;
+  for (const name of names) {
+    if (!Object.hasOwn(fn.parameters, name)) {
+      fn.parameters[name] = 1;
+      changed = true;
+    }
+  }
+  for (const name of Object.keys(fn.parameters)) {
+    if (!names.includes(name) && fn.kind === "custom") {
+      delete fn.parameters[name];
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function changeFunctionType(fn, kind) {
+  if (!fn || fn.kind === kind) return;
+  const sameTypeCount = functions.filter((item) => item.kind === kind && item.id !== fn.id).length;
+  const replacement = createFunction(kind, functions.length);
+  fn.kind = kind;
+  fn.expression = replacement.expression;
+  fn.parameters = replacement.parameters;
+  fn.error = "";
+  fn.compiled = compileExpression(fn.expression);
+  fn.lastValidExpression = fn.expression;
+  if (kind === "custom") fn.name = `Personalizada ${sameTypeCount + 1}`;
+  else fn.name = sameTypeCount ? `${TEMPLATES[kind].title} ${sameTypeCount + 1}` : TEMPLATES[kind].title;
+  syncFunctionEquation(fn);
+  renderAll();
+  setGlobalStatus(`Tipo alterado para ${fn.name}.`);
+}
+
+selectedType.addEventListener("change", () => changeFunctionType(selectedFunction(), selectedType.value));
+
+nameInput.addEventListener("input", () => {
+  const fn = selectedFunction();
+  if (!fn) return;
+  fn.name = nameInput.value.trim() || "Função sem nome";
+  renderFunctionList();
+  renderLegend();
+  scheduleGraph();
+});
+
+expressionInput.addEventListener("input", () => {
+  const fn = selectedFunction();
+  if (!fn || fn.kind !== "custom") return;
+  fn.expression = expressionInput.value;
+  try {
+    const compiled = compileExpression(fn.expression);
+    fn.compiled = compiled;
+    fn.error = "";
+    fn.lastValidExpression = fn.expression;
+    updateParameterSet(fn, compiled.parameters);
+    renderParameters(fn);
+  } catch (error) {
+    fn.error = error instanceof ExpressionError ? error.message : "Não foi possível interpretar essa expressão.";
+  }
+  syncFunctionEquation(fn);
+  setExpressionError(fn);
+  updateCardFormula(fn);
+  renderLegend();
+  scheduleGraph();
+});
+
+$("#add-function-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  addFunction(templateSelect.value);
+});
+
+$("#range-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const next = {
+    xMin: $("#x-min").valueAsNumber,
+    xMax: $("#x-max").valueAsNumber,
+    yMin: $("#y-min").valueAsNumber,
+    yMax: $("#y-max").valueAsNumber,
+  };
+  const values = Object.values(next);
+  if (!values.every(Number.isFinite)) {
+    rangeError.textContent = "Preencha os quatro limites com números válidos.";
+    return;
+  }
+  if (next.xMin >= next.xMax || next.yMin >= next.yMax) {
+    rangeError.textContent = "O mínimo precisa ser menor que o máximo em cada eixo.";
+    return;
+  }
+  if (next.xMax - next.xMin < 1e-6 || next.yMax - next.yMin < 1e-6) {
+    rangeError.textContent = "Cada intervalo precisa ter largura mínima de 0,000001.";
+    return;
+  }
+  if (values.some((value) => Math.abs(value) > 1e6)) {
+    rangeError.textContent = "Use limites entre −1.000.000 e 1.000.000.";
+    return;
+  }
+  graphConfig = next;
+  rangeError.textContent = "";
+  scheduleGraph();
+  setGlobalStatus("Intervalo atualizado.");
+});
+
+$("#reset-range").addEventListener("click", () => {
+  graphConfig = { ...DEFAULT_RANGE };
+  $("#x-min").value = String(DEFAULT_RANGE.xMin);
+  $("#x-max").value = String(DEFAULT_RANGE.xMax);
+  $("#y-min").value = String(DEFAULT_RANGE.yMin);
+  $("#y-max").value = String(DEFAULT_RANGE.yMax);
+  rangeError.textContent = "";
+  scheduleGraph();
+  setGlobalStatus("Intervalo restaurado.");
+});
+
+functions.push(initializeFunction(createFunction("quadratic", 1)));
+selectedId = functions[0].id;
+renderAll();
+
+    </script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark" aria-hidden="true">ƒ</div>
+          <div>
+            <p class="eyebrow">LABORATÓRIO DE MATEMÁTICA</p>
+            <h1>Explorador de funções</h1>
+          </div>
+        </div>
+        <p class="header-note">Mude a expressão. Observe a curva.</p>
+      </header>
+
+      <div id="app-status" class="visually-hidden" role="status" aria-live="polite"></div>
+      <div class="workspace">
+        <aside class="sidebar" aria-label="Controles das funções">
+          <section class="panel function-panel" aria-labelledby="functions-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">SEU EXPERIMENTO</p>
+                <h2 id="functions-title">Funções</h2>
+              </div>
+              <span id="function-count" class="count-badge" aria-label="Quantidade de funções">1</span>
+            </div>
+
+            <div id="function-list" class="function-list" aria-live="polite"></div>
+
+            <form id="add-function-form" class="add-function-form">
+              <label class="field-label" for="function-template">Adicionar função</label>
+              <div class="add-row">
+                <select id="function-template" class="control-select" aria-label="Tipo de função">
+                  <option value="linear">Linear</option>
+                  <option value="quadratic">Quadrática</option>
+                  <option value="sine">Seno</option>
+                  <option value="exponential">Exponencial</option>
+                  <option value="modular">Modular · valor absoluto</option>
+                  <option value="logarithmic">Logarítmica · ln</option>
+                  <option value="custom">Personalizada</option>
+                </select>
+                <button class="button button-primary add-button" type="submit" aria-label="Adicionar função selecionada">+</button>
+              </div>
+            </form>
+          </section>
+
+          <section class="panel editor-panel" aria-labelledby="editor-title">
+            <div class="section-heading editor-heading">
+              <div>
+                <p class="eyebrow">AJUSTE OS VALORES</p>
+                <h2 id="editor-title">Definir função</h2>
+              </div>
+              <span id="selected-color" class="selected-color" aria-hidden="true"></span>
+            </div>
+            <div id="editor-empty" class="empty-note" hidden>Adicione uma função para começar a editar.</div>
+            <div id="editor-content">
+              <label class="field-label" for="selected-function-type">Tipo de função</label>
+              <select id="selected-function-type" class="control-select type-select">
+                <option value="linear">Linear</option>
+                <option value="quadratic">Quadrática</option>
+                <option value="sine">Trigonométrica · seno</option>
+                <option value="exponential">Exponencial</option>
+                <option value="modular">Modular · valor absoluto</option>
+                <option value="logarithmic">Logarítmica · ln</option>
+                <option value="custom">Personalizada</option>
+              </select>
+
+              <label class="field-label" for="function-name">Nome</label>
+              <input id="function-name" class="control-input" type="text" maxlength="40" autocomplete="off" />
+
+              <div id="equation-card" class="equation-card">
+                <p class="field-label">Equação definidora</p>
+                <p id="equation-symbolic" class="equation-symbolic"></p>
+                <p id="equation-live" class="equation-live"></p>
+              </div>
+
+              <div id="custom-expression-section" hidden>
+                <label class="field-label expression-label" for="function-expression">Expressão personalizada <span class="math-note">y =</span></label>
+                <input id="function-expression" class="control-input expression-input" type="text" maxlength="160" spellcheck="false" autocomplete="off" aria-describedby="expression-help expression-error" />
+                <p id="expression-help" class="field-help">Use x, parâmetros nomeados e operações permitidas, como sin(x) ou a*x + b.</p>
+                <p id="expression-error" class="field-error" role="status" aria-live="polite"></p>
+              </div>
+
+              <div id="parameter-section" class="parameter-section">
+                <div class="parameter-heading">
+                  <h3>Movimente os parâmetros</h3>
+                  <span class="unit-note">arraste ou digite</span>
+                </div>
+                <div id="parameter-controls" class="parameter-grid"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel range-panel" aria-labelledby="range-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">JANELA DE VISUALIZAÇÃO</p>
+                <h2 id="range-title">Intervalo dos eixos</h2>
+              </div>
+            </div>
+            <form id="range-form" class="range-form">
+              <fieldset class="axis-fieldset">
+                <legend>Eixo x</legend>
+                <label><span>Mínimo</span><input id="x-min" class="control-input range-input" type="number" step="any" value="-10" /></label>
+                <label><span>Máximo</span><input id="x-max" class="control-input range-input" type="number" step="any" value="10" /></label>
+              </fieldset>
+              <fieldset class="axis-fieldset">
+                <legend>Eixo y</legend>
+                <label><span>Mínimo</span><input id="y-min" class="control-input range-input" type="number" step="any" value="-10" /></label>
+                <label><span>Máximo</span><input id="y-max" class="control-input range-input" type="number" step="any" value="10" /></label>
+              </fieldset>
+              <div class="range-actions">
+                <p id="range-error" class="field-error" role="status" aria-live="polite"></p>
+                <button class="button button-secondary" type="submit">Aplicar intervalo</button>
+                <button id="reset-range" class="text-button" type="button">Restaurar −10 a 10</button>
+              </div>
+            </form>
+          </section>
+        </aside>
+
+        <section class="graph-panel" aria-labelledby="graph-heading">
+          <div class="graph-header">
+            <div>
+              <p class="eyebrow">PLANO CARTESIANO</p>
+              <h2 id="graph-heading">Veja as funções em ação</h2>
+            </div>
+            <p id="graph-summary" class="graph-summary">Carregando gráfico…</p>
+          </div>
+
+          <div class="graph-frame">
+            <svg id="graph" viewBox="0 0 900 560" role="img" aria-labelledby="graph-title graph-description" preserveAspectRatio="xMidYMid meet">
+              <title id="graph-title">Gráfico cartesiano das funções selecionadas</title>
+              <desc id="graph-description">Plano cartesiano com a curva x ao quadrado, no intervalo de menos dez a dez.</desc>
+              <defs><clipPath id="plot-clip"><rect id="plot-clip-rect" x="72" y="24" width="804" height="474"></rect></clipPath></defs>
+              <g id="grid-layer"></g>
+              <g id="axis-layer"></g>
+              <g id="curve-layer" clip-path="url(#plot-clip)"></g>
+            </svg>
+          </div>
+
+          <div class="graph-footer">
+            <div>
+              <p class="axis-caption"><span class="axis-x">x</span> variável independente <span class="caption-divider">·</span> <span class="axis-y">y</span> valor da função</p>
+              <p id="curve-description" class="curve-description">Curvas desenhadas no intervalo atual.</p>
+            </div>
+            <div id="graph-legend" class="graph-legend" aria-label="Legenda e visibilidade das funções"></div>
+          </div>
+        </section>
+      </div>
+      <footer class="page-footer"><span>Expressões calculadas localmente no navegador.</span><span>Ângulos trigonométricos em radianos.</span></footer>
+    </main>
+  </body>
+</html>
