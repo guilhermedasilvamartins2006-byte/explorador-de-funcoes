@@ -132,6 +132,10 @@ h3 { margin: 0; font-size: 13px; }
 .expression-label { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
 .math-note { color: var(--muted); font-family: Georgia, serif; font-size: 14px; }
 .expression-input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.natural-language-label { margin-top: 14px; }
+.natural-language-input { height: auto; min-height: 58px; padding: 9px 11px; resize: vertical; line-height: 1.4; }
+.natural-language-actions { display: grid; justify-items: start; gap: 6px; margin-top: 8px; }
+.natural-language-actions .field-help { margin: 0; }
 .field-help, .unit-note { margin: 6px 0 0; color: var(--muted); font-size: 11px; }
 .field-error { min-height: 0; margin: 0; color: var(--red); font-size: 11px; }
 .field-error:not(:empty) { margin-top: 6px; }
@@ -207,8 +211,9 @@ h3 { margin: 0; font-size: 13px; }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
 
-    </style>
+</style>
     <script type="module">
+// --- expression-parser.js ---
 const MAX_EXPRESSION_LENGTH = 160;
 const MAX_TOKENS = 120;
 const MAX_DEPTH = 32;
@@ -416,7 +421,7 @@ function compileExpression(source) {
   };
 }
 
-
+// --- functions.js ---
 const PALETTE = [
   { color: "#155eef", dash: "" },
   { color: "#b42318", dash: "8 4" },
@@ -515,7 +520,7 @@ function colorFor(fn) {
   return PALETTE[((fn.colorIndex % PALETTE.length) + PALETTE.length) % PALETTE.length];
 }
 
-
+// --- graph.js ---
 const SVG_NS = "http://www.w3.org/2000/svg";
 const WIDTH = 900;
 const HEIGHT = 560;
@@ -672,6 +677,98 @@ function formatNumber(value) {
   return formatTick(value);
 }
 
+// --- natural-language.js ---
+const NUMBER_WORDS = Object.freeze({
+  zero: "0", um: "1", uma: "1", dois: "2", duas: "2", tres: "3", quatro: "4",
+  cinco: "5", seis: "6", sete: "7", oito: "8", nove: "9", dez: "10",
+});
+
+function normalizeText(source) {
+  return source
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[−–]/g, "-")
+    .replace(/×/g, " vezes ")
+    .replace(/÷/g, " dividido por ")
+    .trim();
+}
+
+function numberWordsToDigits(source) {
+  return source.replace(/\b(zero|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez)\b/g, (word) => NUMBER_WORDS[word]);
+}
+
+function removeFunctionLabel(source) {
+  const equals = source.indexOf("=");
+  if (equals >= 0) return source.slice(equals + 1).trim();
+  return source
+    .replace(/^(?:funcao\s+(?:linear|quadratica|modular|logaritmica|trigonometrica|exponencial)\s+)?(?:y|f)\s*(?:\(\s*x\s*\))?\s*(?:igual\s+a\s*)?/i, "")
+    .trim();
+}
+
+function convertVerbalOperators(source) {
+  return source
+    .replace(/\b(?:multiplicado|multiplicada)\s+por\b/g, "*")
+    .replace(/\bvezes\b/g, "*")
+    .replace(/\bdividido\s+por\b/g, "/")
+    .replace(/\bmais\b/g, "+")
+    .replace(/\bmenos\b/g, "-")
+    .replace(/\belevado\s+a\s+/g, "^")
+    .replace(/\bao\s+quadrado\b/g, "^2")
+    .replace(/\bao\s+cubo\b/g, "^3");
+}
+
+function convertNamedOperations(source) {
+  let expression = source;
+  const operations = [
+    ["raiz quadrada de", "sqrt"],
+    ["logaritmo natural de", "log"],
+    ["seno de", "sin"],
+    ["cosseno de", "cos"],
+    ["tangente de", "tan"],
+    ["modulo de", "abs"],
+    ["valor absoluto de", "abs"],
+  ];
+
+  for (const [phrase, name] of operations) {
+    const operand = "(x|\\d+(?:\\.\\d+)?|pi|e)";
+    expression = expression.replace(new RegExp(`\\b${phrase}\\s*${operand}\\b`, "g"), `${name}($1)`);
+  }
+  return expression;
+}
+
+/** Convert a small, documented set of Portuguese math phrases into safe parser syntax. */
+function interpretNaturalLanguage(source) {
+  if (typeof source !== "string" || !source.trim()) {
+    throw new Error("Escreva uma descrição, como “módulo do módulo de x menos um”.");
+  }
+
+  let phrase = removeFunctionLabel(normalizeText(source));
+  phrase = numberWordsToDigits(phrase);
+  phrase = phrase.replace(/\s+/g, " ").trim();
+
+  // Keep the intended grouping in the example: | |x| - 1 |.
+  const nestedModulus = phrase.match(/^(?:modulo|valor absoluto)\s+do\s+(?:modulo|valor absoluto)\s+de\s+x\s*\b(menos|mais)\s*(\d+(?:\.\d+)?)$/);
+  if (nestedModulus) {
+    const operator = nestedModulus[1] === "menos" ? "-" : "+";
+    return `abs(abs(x) ${operator} ${nestedModulus[2]})`;
+  }
+  if (/^(?:modulo|valor absoluto)\s+do\s+(?:modulo|valor absoluto)\s+de\s+x$/.test(phrase)) {
+    return "abs(abs(x))";
+  }
+
+  phrase = convertVerbalOperators(phrase);
+  phrase = convertNamedOperations(phrase);
+  phrase = phrase.replace(/\s+/g, "").replace(/,/g, ".");
+
+  // Plain mathematical notation is also accepted in this field.
+  return phrase;
+}
+
+// --- app.js ---
+
+
+
 
 const $ = (selector) => document.querySelector(selector);
 const functionList = $("#function-list");
@@ -681,6 +778,8 @@ const selectedType = $("#selected-function-type");
 const nameInput = $("#function-name");
 const expressionInput = $("#function-expression");
 const expressionError = $("#expression-error");
+const naturalLanguageInput = $("#natural-language-description");
+const naturalLanguageStatus = $("#natural-language-status");
 const customExpressionSection = $("#custom-expression-section");
 const equationCard = $("#equation-card");
 const equationSymbolic = $("#equation-symbolic");
@@ -914,6 +1013,8 @@ function renderEditor() {
   selectedType.value = fn.kind;
   nameInput.value = fn.name;
   expressionInput.value = fn.expression;
+  naturalLanguageInput.value = fn.naturalLanguageDescription ?? "";
+  naturalLanguageStatus.textContent = fn.naturalLanguageStatus ?? "";
   selectedColor.style.backgroundColor = colorFor(fn).color;
   const isCustom = fn.kind === "custom";
   equationCard.hidden = isCustom;
@@ -1037,6 +1138,8 @@ nameInput.addEventListener("input", () => {
 expressionInput.addEventListener("input", () => {
   const fn = selectedFunction();
   if (!fn || fn.kind !== "custom") return;
+  fn.naturalLanguageStatus = "";
+  naturalLanguageStatus.textContent = "";
   fn.expression = expressionInput.value;
   try {
     const compiled = compileExpression(fn.expression);
@@ -1053,6 +1156,31 @@ expressionInput.addEventListener("input", () => {
   updateCardFormula(fn);
   renderLegend();
   scheduleGraph();
+});
+
+naturalLanguageInput.addEventListener("input", () => {
+  const fn = selectedFunction();
+  if (!fn || fn.kind !== "custom") return;
+  fn.naturalLanguageDescription = naturalLanguageInput.value;
+  fn.naturalLanguageStatus = "";
+  naturalLanguageStatus.textContent = "";
+});
+
+$("#interpret-description").addEventListener("click", () => {
+  const fn = selectedFunction();
+  if (!fn || fn.kind !== "custom") return;
+  fn.naturalLanguageDescription = naturalLanguageInput.value;
+  try {
+    const expression = interpretNaturalLanguage(naturalLanguageInput.value);
+    compileExpression(expression);
+    expressionInput.value = expression;
+    expressionInput.dispatchEvent(new Event("input", { bubbles: true }));
+    fn.naturalLanguageStatus = `Interpretado como y = ${expression}. Confira ou edite a expressão abaixo.`;
+    naturalLanguageStatus.textContent = fn.naturalLanguageStatus;
+  } catch (error) {
+    fn.naturalLanguageStatus = `Não consegui interpretar. Use uma frase simples ou escreva a expressão matemática. ${error.message}`;
+    naturalLanguageStatus.textContent = fn.naturalLanguageStatus;
+  }
 });
 
 $("#add-function-form").addEventListener("submit", (event) => {
@@ -1106,7 +1234,7 @@ functions.push(initializeFunction(createFunction("quadratic", 1)));
 selectedId = functions[0].id;
 renderAll();
 
-    </script>
+</script>
   </head>
   <body>
     <main class="app-shell">
@@ -1183,6 +1311,13 @@ renderAll();
               </div>
 
               <div id="custom-expression-section" hidden>
+                <label class="field-label natural-language-label" for="natural-language-description">Descreva a função em português</label>
+                <textarea id="natural-language-description" class="control-input natural-language-input" maxlength="240" rows="2" aria-describedby="natural-language-help natural-language-status" placeholder="Ex.: função modular y(x) = módulo do módulo de x menos um"></textarea>
+                <p id="natural-language-help" class="field-help">Interpretação guiada para frases simples: módulo, seno, cosseno, tangente, raiz quadrada, logaritmo natural e operações. Depois, confira a expressão gerada.</p>
+                <div class="natural-language-actions">
+                  <button id="interpret-description" class="button button-secondary" type="button">Interpretar descrição</button>
+                  <p id="natural-language-status" class="field-help" role="status" aria-live="polite"></p>
+                </div>
                 <label class="field-label expression-label" for="function-expression">Expressão personalizada <span class="math-note">y =</span></label>
                 <input id="function-expression" class="control-input expression-input" type="text" maxlength="160" spellcheck="false" autocomplete="off" aria-describedby="expression-help expression-error" />
                 <p id="expression-help" class="field-help">Use x, parâmetros nomeados e operações permitidas, como sin(x) ou a*x + b.</p>
